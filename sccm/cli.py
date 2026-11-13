@@ -61,7 +61,7 @@ def _apply_fov(s, path):
     s.win["b"] = Window.from_box(w["euvi"])
     s.message = (f"已载入 FoV {os.path.basename(path)}\n"
                  f"AIA {s.win['a']} / EUVI {s.win['b']}\n"
-                 f"在任一格点第一个点，另一格画极线；双击已测点可选中。")
+                 f"在任一格点第一个点，另一格画极线。")
 
 
 def _cli_show(args):
