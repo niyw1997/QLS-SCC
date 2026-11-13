@@ -21,16 +21,16 @@ def main():
     with open(os.path.join(HERE, "fov.json"), encoding="utf-8") as fh:
         fov = json.load(fh)["mapping"]["windows"]
 
-    s = Session(os.path.join(data, "aia193_20250416_cutout.fits"),
-                os.path.join(data, "euvi195_20250416_cutout.fts"),
+    s = Session(os.path.join(data, "aia304_20250416_cutout.fits"),
+                os.path.join(data, "euvi304_20250416_cutout.fts"),
                 outdir=out, verbose=True)
     s.win["a"] = Window.from_box(fov["aia"])
     s.win["b"] = Window.from_box(fov["euvi"])
 
     # Two points on the same structure. The second one was obtained by
     # back-projecting a point on the EUVI contour at the same height.
-    for pa, pb in (((-400.0, 100.0), (-943.0, 24.3)),
-                   ((-459.6677, 130.9985), (-980.7457, 57.4983))):
+    for pa, pb in (((-450.0, 180.0), (-878.5, 120.8)),
+                   ((-366.0397, 183.3612), (-827.3759, 123.2602))):
         s.pick_a(*pa)
         s.pick_b(*pb)
 
