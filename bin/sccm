@@ -1,0 +1,13 @@
+#!/bin/sh
+# QLS-SCC 启动器：优先本目录 .venv，其次 SCCM_PYTHON，最后 python3
+set -e
+HERE=$(cd "$(dirname "$0")/.." && pwd)
+if [ -x "$HERE/.venv/bin/python" ]; then
+    PY="$HERE/.venv/bin/python"
+elif [ -n "$SCCM_PYTHON" ]; then
+    PY="$SCCM_PYTHON"
+else
+    PY=$(command -v python3)
+fi
+export PYTHONPATH="$HERE:${PYTHONPATH}"
+exec "$PY" -m sccm "$@"

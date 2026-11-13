@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "qls-scc"
+version = "1.0.0"
+description = "QLS-style stereoscopic measurement workbench for SDO/AIA and STEREO/EUVI (SCC)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Yiwei Ni" }]
+dependencies = [
+  "numpy>=1.24",
+  "scipy>=1.10",
+  "matplotlib>=3.7",
+  "astropy>=5.3",
+  "sunpy>=5.0",
+]
+
+[project.scripts]
+qls-scc = "sccm.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["sccm*"]
