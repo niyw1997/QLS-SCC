@@ -8,9 +8,9 @@ QLS 风格的双视角 SCC 三角化工作台。把 SDO/AIA 与 STEREO-A/EUVI �
 
 ![四格界面](docs/img/gui.png)
 
-2025-04-16 的 304 例子，见 [examples/20250416](examples/20250416)。
+2025-04-16 的 193/195 例子，见 [examples/20250416](examples/20250416)。
 
-![304 例子](docs/img/example_20250416.png)
+![193/195 例子](docs/img/example_20250416.png)
 
 ## 特性
 
@@ -59,7 +59,7 @@ SCCM_PYTHON=/path/to/python ./bin/sccm info --obs1 aia.fits --obs2 euvi.fits
 
 ## 2025-04-16 例子
 
-`examples/20250416` 里是 2025-04-16 03:59:53 的 AIA 304 与 04:00:45 的 EUVI 304 裁剪，
+`examples/20250416` 里是 2025-04-16 03:59:52 的 AIA 193 与 04:00:00 的 EUVI 195 裁剪，
 保留了原 WCS 与观测者头信息，FoV 用 QLS 里保存的窗口。
 
 ```bash
@@ -72,7 +72,7 @@ SCCM_PYTHON=/path/to/python ./bin/sccm info --obs1 aia.fits --obs2 euvi.fits
 PYTHONPATH=. .venv/bin/python examples/20250416/make_example.py
 ```
 
-两个点取在同一条结构上，r 约 1.0066 R_sun，高度约 4.6 Mm，最大视线失配 5.9 km。
+两个点取在同一条结构上，r 约 1.1599 R_sun，高度约 111.3 Mm，最大视线失配 6.1 km。
 `examples/20250416/output/` 里已经放了一份跑好的四件套，可以直接对照。
 
 ## 通用用法
@@ -149,14 +149,14 @@ QLS-SCC/
   sccm/gui.py              Tk 界面
   sccm/cli.py              命令行
   sccm/selftest.py         数值自检
-  examples/20250416/       304 例子、裁剪数据、FoV、成品
+  examples/20250416/       193/195 例子、裁剪数据、FoV、成品
   docs/SCCM-说明.pdf       设计与验收说明
   install.sh               建 venv 并装依赖
 ```
 
 ## 数据与致谢
 
-例子数据是 SDO/AIA 304 与 STEREO-A/EUVI 304 的全日面裁剪，时间 2025-04-16。
+例子数据是 SDO/AIA 193 与 STEREO-A/EUVI 195 的全日面裁剪，时间 2025-04-16。
 AIA 数据来自 SDO/AIA，EUVI 数据来自 STEREO-A/EUVI。裁剪只改像幅，不改 WCS 与观测者头信息。
 
 方法
