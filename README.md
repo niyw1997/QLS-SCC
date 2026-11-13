@@ -51,6 +51,12 @@ python3 -m venv .venv
 
 装完 `bin/sccm` 会自动用 `.venv`。
 
+如果 PyPI 网络不通，而本机已经有 sunpy 环境，可以跳过 `install.sh`，直接
+
+```bash
+SCCM_PYTHON=/path/to/python ./bin/sccm info --obs1 aia.fits --obs2 euvi.fits
+```
+
 ## 2025-04-16 例子
 
 `examples/20250416` 里是 2025-04-16 03:59:52 的 AIA 193 与 04:00:00 的 EUVI 195 裁剪，
