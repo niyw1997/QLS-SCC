@@ -14,8 +14,9 @@ from . import __version__, geometry as G
 from .app import Point, Session
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEF_A = os.path.join(HERE, "data/20250302/aia20250302_0304.fits")
-DEF_B = os.path.join(HERE, "data/20250302/20250302_115545_n4euA.fts")
+DEF_A = os.path.join(HERE, "examples/20250416/data/aia193_20250416_cutout.fits")
+DEF_B = os.path.join(HERE, "examples/20250416/data/euvi195_20250416_cutout.fts")
+DEF_FOV = os.path.join(HERE, "examples/20250416/fov.json")
 
 
 def _box(s):
@@ -45,7 +46,7 @@ def _cli_demo(args):
     from .demo import run_demo
     center = args.center
     run_demo(args.obs1 or DEF_A, args.obs2 or DEF_B, outdir=args.out,
-             center=center, half=args.half, n=args.n, real=args.real)
+             center=center, half=args.half, n=args.n)
 
 
 def _apply_fov(s, path):
@@ -67,6 +68,8 @@ def _cli_show(args):
     from . import gui
     s = Session(args.obs1 or DEF_A, args.obs2 or DEF_B, outdir=args.out,
                 r_link_hi=args.r_hi)
+    if not args.fov_json and not args.zoom and args.obs1 is None and args.obs2 is None:
+        args.fov_json = DEF_FOV
     if args.fov_json:
         _apply_fov(s, args.fov_json)
     elif args.zoom:
@@ -121,12 +124,10 @@ def build_parser():
 
     sp = sub.add_parser("demo", help="无窗口跑一遍并出图")
     common(sp)
-    sp.add_argument("--center", type=float, nargs=2, default=(200.0, -300.0),
+    sp.add_argument("--center", type=float, nargs=2, default=(-335.0, 71.0),
                     metavar=("X", "Y"), help="演示视场中心（角秒）")
-    sp.add_argument("--half", type=float, default=330.0, help="演示视场半宽（角秒）")
+    sp.add_argument("--half", type=float, default=180.0, help="演示视场半宽（角秒）")
     sp.add_argument("-n", type=int, default=11, help="合成环取几个点")
-    sp.add_argument("--real", action="store_true",
-                    help="改用真实数据的自动配对（试验性）")
     sp.set_defaults(func=_cli_demo)
 
     sp = sub.add_parser("info", help="打印两幅像的几何信息")

@@ -34,8 +34,6 @@ def main():
         s.pick_a(*pa)
         s.pick_b(*pb)
 
-    s.selected = 0
-    print("[example] Outline:", s.identify())
     print("[example] summary:", s.summary())
     paths = s.save(make_figure=True, dpi=300)
     print("[example] wrote:\n  " + "\n  ".join(paths))

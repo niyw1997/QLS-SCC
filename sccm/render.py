@@ -27,7 +27,6 @@ BG = "#0e0e0e"
 FG = "#e8e8e8"
 GRID = "#4a4a4a"
 CYAN = "#00e5ff"
-PINK = "#ff2d55"
 YELLOW = "#ffe14d"
 MAGENTA = "#ff5cf0"
 
@@ -218,10 +217,6 @@ def _draw_height3d(ax, session):
 
     sc = ax.scatter(lon, lat, H, c=H, cmap=CMAP_H, norm=_norm_h(H), s=42,
                     depthshade=False, edgecolors="white", linewidths=0.6, zorder=5)
-    k = session.selected
-    if k is not None and 0 <= k < n:
-        ax.scatter([lon[k]], [lat[k]], [H[k]], s=150, facecolors="none",
-                   edgecolors=YELLOW, linewidths=1.6, zorder=6)
 
     ax.set_xlim(lon0, lon1)
     ax.set_ylim(lat0, lat1)
@@ -270,10 +265,6 @@ def _draw_height_profile(ax, session):
     ax.plot(ss, HH, color=YELLOW, lw=1.4, zorder=3)
     ax.scatter(s, H, c=H, cmap=_cmap("viridis"), norm=_norm_h(H),
                s=40, edgecolors="white", linewidths=0.6, zorder=5)
-    k = session.selected
-    if k is not None and 0 <= k < len(H):
-        ax.scatter([s[k]], [H[k]], s=140, facecolors="none", edgecolors=YELLOW,
-                   linewidths=1.5, zorder=6)
     pad_x = 0.04 * max(s[-1] - s[0], 1.0)
     ax.set_xlim(s[0] - pad_x, s[-1] + pad_x)
     mid = 0.5 * (float(H.min()) + float(H.max()))
@@ -335,26 +326,6 @@ def make_figure(session, size=(12.4, 9.0), dpi=150, levels=None, fig=None):
         ax.set_xlabel("HPC x (arcsec)", fontsize=7.5)
         ax.set_ylabel("HPC y (arcsec)", fontsize=7.5)
 
-    # 识别轮廓
-    for d in session.contours.get("a", []):
-        c = d["contour"]
-        ax_a.plot(np.r_[c[:, 0], c[0, 0]], np.r_[c[:, 1], c[0, 1]],
-                  color=CYAN, lw=1.1, alpha=0.85, zorder=8)
-        if d.get("spine") is not None:
-            sp = d["spine"]
-            ax_a.plot(sp[:, 0], sp[:, 1], "-", color=CYAN, lw=0.8, alpha=0.6,
-                      zorder=8)
-    for d in session.contours.get("b", []):
-        c = d["contour"]
-        ax_b.plot(np.r_[c[:, 0], c[0, 0]], np.r_[c[:, 1], c[0, 1]],
-                  color=PINK, lw=1.2, alpha=0.9, zorder=8)
-        if d.get("spine") is not None:
-            sp = d["spine"]
-            ax_b.plot(sp[:, 0], sp[:, 1], "-", color=PINK, lw=0.8, alpha=0.6,
-                      zorder=8)
-    if session.corridor is not None:
-        c = session.corridor
-        ax_b.plot(c[:, 0], c[:, 1], ".", ms=1.2, color="#7fe3ff", alpha=0.25, zorder=2)
     if len(session.points) >= 2:
         cv = session.curve_B(300)
         if cv is not None:

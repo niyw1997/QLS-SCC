@@ -13,8 +13,8 @@ from .views import load_view
 
 __all__ = ["run_selftest"]
 
-DEFAULT_A = "data/20250302/aia20250302_0304.fits"
-DEFAULT_B = "data/20250302/20250302_115545_n4euA.fts"
+DEFAULT_A = "examples/20250416/data/aia193_20250416_cutout.fits"
+DEFAULT_B = "examples/20250416/data/euvi195_20250416_cutout.fts"
 
 
 def _pass(name, value, tol, unit="", ok=None):
@@ -28,8 +28,8 @@ def run_selftest(obs1=None, obs2=None, verbose=True):
     here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     obs1 = obs1 or os.path.join(here, DEFAULT_A)
     obs2 = obs2 or os.path.join(here, DEFAULT_B)
-    a = load_view(obs1, key="aia")
-    b = load_view(obs2, key="euvi")
+    a = load_view(obs1)
+    b = load_view(obs2)
     frame = G.ref_frame(max(a.obstime, b.obstime))
     print(f"[selftest] {a.short} + {b.short}")
     print(f"  视角差 {G.separation_deg(a.m, b.m, frame):.3f}°   "

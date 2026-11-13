@@ -203,8 +203,6 @@ class SCCApp:
 
         self.btn_zoom = _Button(side, "联动缩放 Zoom / Link  (Z)", self.toggle_zoom)
         self.btn_zoom.pack(fill="x", padx=14, pady=2)
-        self.btn_ident = _Button(side, "轮廓识别 Outline  (I)", self.identify)
-        self.btn_ident.pack(fill="x", padx=14, pady=2)
         self.btn_snap = _Button(side, "曲线吸附 Curve  (M)", self.auto_snap)
         self.btn_snap.pack(fill="x", padx=14, pady=2)
         _Button(side, "删最后 Undo  (U)", self.undo).pack(fill="x", padx=14, pady=2)
@@ -238,7 +236,7 @@ class SCCApp:
         self.info.pack(fill="both", expand=True, padx=14, pady=(2, 4))
         self.info.configure(state="disabled")
 
-        for k, fn in (("z", self.toggle_zoom), ("i", self.identify), ("m", self.auto_snap),
+        for k, fn in (("z", self.toggle_zoom), ("m", self.auto_snap),
                       ("u", self.undo),
                       ("x", self.clear), ("s", self.save), ("r", self.reset),
                       ("a", self.auto_levels), ("q", self.close)):
@@ -327,9 +325,6 @@ class SCCApp:
         self._update_buttons()
 
     def _update_buttons(self):
-        if hasattr(self, "btn_ident"):
-            self.btn_ident.set_enabled(self.s.selected is not None
-                                       and 0 <= self.s.selected < len(self.s.points))
         if hasattr(self, "btn_snap"):
             self.btn_snap.set_enabled(len(self.s.points) >= 2)
 
@@ -420,14 +415,6 @@ class SCCApp:
         x, y = ev.xdata, ev.ydata
         if x is None or y is None:
             return
-        # 双击选中已测点，供 Outline 用；单击永远用于取点，不再被选中拦截
-        mod = bool(ev.key) and any(k in str(ev.key).lower()
-                                   for k in ("control", "ctrl", "cmd", "super", "meta"))
-        if getattr(ev, "dblclick", False) or mod:
-            if self.s.select_at(key, x, y) is not None:
-                self.s.pending = None      # 双击选中时取消未完成的起点
-                self.redraw()
-            return
         if self.s.pending is not None:
             if key == self.s.pending.get("src", "a"):
                 self.s.start_point(key, x, y)
@@ -437,7 +424,6 @@ class SCCApp:
             self.redraw()
             return
         # 没有待确认点时，从当前这一格起新点，另一格自动画极线
-        self.s.selected = None
         self.s.start_point(key, x, y)
         self.redraw()
 
@@ -483,11 +469,6 @@ class SCCApp:
         self.redraw()
 
     # ------------------------------------------------------------------ #
-    def identify(self):
-        msg = self.s.identify()
-        self.redraw()
-        self.s.message = msg
-
     def auto_snap(self):
         self.s.auto_snap()
         self.redraw()
@@ -497,7 +478,6 @@ class SCCApp:
             self.s.points.pop()
             for j, q in enumerate(self.s.points, start=1):
                 q.i = j
-            self.s.selected = None
             self.s.message = "已撤销最后一个点。"
             self.redraw()
 

@@ -32,7 +32,7 @@ cd ../..
 PYTHONPATH=. .venv/bin/python examples/20250416/make_example.py
 ```
 
-`make_example.py` 取两个点，第一个点选中后做 Outline 识别，结果写到 `output/`。
+`make_example.py` 取两个点，结果写到 `output/`。
 
 ## 预期结果
 
@@ -42,10 +42,4 @@ PYTHONPATH=. .venv/bin/python examples/20250416/make_example.py
 | r | 1.1599 R_sun |
 | 高度 | 111.3 Mm |
 | 两视线失配 | 最大 6.1 km，中位 3.2 km |
-| Outline AIA | 142353 px，平均暗度 0.274，种子暗度 0.069 |
-| Outline EUVI | 2797 px，平均暗度 0.263，种子暗度 0.184 |
-
-AIA 193 在这个种子上仍是一片较宽的暗区，Outline 只作参考。要更紧就缩小视场，
-或换一个更暗、更局部的种子。
-
 `output/` 里已经放了一份跑好的 PNG、PDF、JSON 与 CSV，可直接对照。

@@ -51,48 +51,32 @@ def _window_around(a, b, xa, ya, xb, yb, pad=140.0):
     return Window(ca[0], ca[1], half)
 
 
-def run_demo(obs1, obs2, outdir=None, n=11, verbose=True, real=False,
-             center=(200.0, -300.0), half=330.0):
+def run_demo(obs1, obs2, outdir=None, n=11, verbose=True,
+             center=(-335.0, 71.0), half=180.0):
     outdir = outdir or os.path.join(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))), "out")
     s = Session(obs1, obs2, outdir=outdir, verbose=verbose)
 
-    if real:
-        s.zoom("a", (center[0] - half, center[0] + half,
-                     center[1] - half, center[1] + half), link=True)
-        msg = s.identify()
-        if verbose:
-            print("[demo] 识别:", msg)
-        acc, rej = auto_pairs(s, n_max=n)
-        if verbose:
-            print(f"[demo] 自动配对：接受 {len(acc)}，拒绝 {len(rej)}")
-        for pa, pb, r, dist, gap in acc:
-            s.pending = dict(x=pa[0], y=pa[1], epi=G.epipolar(
-                s.a.m, s.b.m, pa[0], pa[1], s.frame, r_lo=1.0, r_hi=2.0, n=161))
-            s.pick_b(pb[0], pb[1])
-        s.pending = None
-    else:
-        pts = synthetic_loop(n=n)
-        xa, ya = _project_points(s.a.m, pts, s.frame)
-        xb, yb = _project_points(s.b.m, pts, s.frame)
-        ok = np.isfinite(xa) & np.isfinite(ya) & np.isfinite(xb) & np.isfinite(yb)
-        pts, xa, ya, xb, yb = pts[ok], xa[ok], ya[ok], xb[ok], yb[ok]
-        if len(pts) < 3:
-            raise RuntimeError("合成环投不到两幅像上")
-        wa = _window_around(s.a, s.b, xa, ya, xb, yb)
-        s.set_window("a", wa, link=True)
-        if verbose:
-            print(f"[demo] 合成半环 {len(pts)} 点，视场 a {s.win['a']}  b {s.win['b']}")
-        truth = pts / G.RSUN_KM
-        err = []
-        for i in range(len(pts)):
-            s.pick_a(float(xa[i]), float(ya[i]))
-            p = s.pick_b(float(xb[i]), float(yb[i]))
-            if p is not None:
-                err.append(np.linalg.norm(p.xyz - truth[i]))
-        if verbose and err:
-            print(f"[demo] 回真值最大偏差 {max(err):.2e} R_sun（{max(err)*G.RSUN_KM:.2f} km）")
-
+    pts = synthetic_loop(n=n)
+    xa, ya = _project_points(s.a.m, pts, s.frame)
+    xb, yb = _project_points(s.b.m, pts, s.frame)
+    ok = np.isfinite(xa) & np.isfinite(ya) & np.isfinite(xb) & np.isfinite(yb)
+    pts, xa, ya, xb, yb = pts[ok], xa[ok], ya[ok], xb[ok], yb[ok]
+    if len(pts) < 3:
+        raise RuntimeError("合成环投不到两幅像上")
+    wa = _window_around(s.a, s.b, xa, ya, xb, yb)
+    s.set_window("a", wa, link=True)
+    if verbose:
+        print(f"[demo] 合成半环 {len(pts)} 点，视场 a {s.win['a']}  b {s.win['b']}")
+    truth = pts / G.RSUN_KM
+    err = []
+    for i in range(len(pts)):
+        s.pick_a(float(xa[i]), float(ya[i]))
+        p = s.pick_b(float(xb[i]), float(yb[i]))
+        if p is not None:
+            err.append(np.linalg.norm(p.xyz - truth[i]))
+    if verbose and err:
+        print(f"[demo] 回真值最大偏差 {max(err):.2e} R_sun（{max(err)*G.RSUN_KM:.2f} km）")
     if verbose:
         sm = s.summary()
         print("[demo] 小结:", {k: (round(v, 4) if isinstance(v, float) else v)
@@ -101,43 +85,3 @@ def run_demo(obs1, obs2, outdir=None, n=11, verbose=True, real=False,
     if verbose:
         print("[demo] 已保存:\n  " + "\n  ".join(paths))
     return s, paths
-
-
-def auto_pairs(session, n_max=10, tol=12.0, r_lo=1.0, r_hi=1.3,
-               gap_max_km=4000.0):
-    """真实数据上的快速预填：沿参考脊线取点，找极线在另一视角轮廓上的最近点。"""
-    if not session.contours["a"] or not session.contours["b"]:
-        return [], []
-    ca = session.contours["a"][0]
-    cb = session.contours["b"][0]
-    c = ca.get("spine")
-    if c is None:
-        c = ca["contour"]
-    c = np.asarray(c, float)
-    target = np.asarray(cb["contour"], float)
-    step = max(1, len(c) // 60)
-    idx = list(range(0, len(c), step))
-    accepted, rejected = [], []
-    for k in idx:
-        pa = (float(c[k, 0]), float(c[k, 1]))
-        epi = G.epipolar(session.a.m, session.b.m, pa[0], pa[1], session.frame,
-                         r_lo=r_lo, r_hi=r_hi, n=121)
-        d = np.hypot(target[None, :, 0] - epi["x"][:, None],
-                     target[None, :, 1] - epi["y"][:, None])
-        j, i = np.unravel_index(np.argmin(d), d.shape)
-        dist = float(d[j, i])
-        if dist > tol:
-            rejected.append((pa, tuple(target[i]), float(epi["r"][j]), dist, np.nan))
-            continue
-        pb = (float(target[i, 0]), float(target[i, 1]))
-        res = G.triangulate(session.a.m, session.b.m, pa, pb, session.frame)
-        gap = float(res["gap_km"])
-        row = (pa, pb, float(res["r"]), dist, gap)
-        if gap <= gap_max_km:
-            accepted.append(row)
-        else:
-            rejected.append(row)
-    if len(accepted) > n_max:
-        sel = np.linspace(0, len(accepted) - 1, n_max).astype(int)
-        accepted = [accepted[i] for i in sel]
-    return accepted, rejected

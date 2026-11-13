@@ -1,7 +1,7 @@
 """测量会话：把界面、演示与命令行共用的状态与动作放在一起。
 
 GUI 只负责画和接鼠标，真正的"发生了什么"都在这里：
-视场联动、引导识别、取点、三角化、PCA、保存。
+视场联动、取点、三角化、PCA、保存。
 """
 
 from __future__ import annotations
@@ -14,7 +14,6 @@ from dataclasses import dataclass
 import numpy as np
 
 from . import geometry as G
-from . import identify as I
 from .views import View, Window, load_view
 
 __all__ = ["Session", "Point"]
@@ -59,12 +58,8 @@ class Session:
         self.r_link_hi = float(r_link_hi)
         self.win = {"a": self.a.full_window(), "b": self.b.full_window()}
         self.points: list[Point] = []
-        self.pending = None          # dict(x,y,epi) 在 a 上点过、等 b 上确认
-        self.contours = {"a": [], "b": []}
-        self.corridor = None         # b 上的走廊点集（HPC 角秒）
-        self.identify_msg = ""
-        self.selected = None
-        self.message = "在任一格点第一个点，另一格会画极线；双击已测点可选中。"
+        self.pending = None          # dict(src,x,y,epi) 在某一格起过点、等另一格确认
+        self.message = "在任一格点第一个点，另一格会画极线。"
         self.separation = G.separation_deg(self.a.m, self.b.m, self.frame)
         self.sensitivity = G.epipolar_sensitivity(self.a.m, self.b.m, self.frame)
         if verbose:
@@ -108,39 +103,6 @@ class Session:
         self.win = {"a": self.a.full_window(), "b": self.b.full_window()}
         self.pending = None
         self.message = "已回到全盘。"
-
-    # ------------------------------------------------------------------ #
-    # 识别
-    # ------------------------------------------------------------------ #
-    def identify(self):
-        """以当前选中的已测点为参考，在 AIA 与 EUVI 各自的 Zoom 里找暗结构。
-
-        两个视角分别识别，不再用一边的脊线去引导另一边。没有选中的点就什么都不做。
-        """
-        if self.selected is None or not (0 <= self.selected < len(self.points)):
-            self.message = "先在图上点一个已测点作为参考，再按 I。"
-            return self.message
-        p = self.points[self.selected]
-        if not (self.win["a"].contains(*p.pa) and self.win["b"].contains(*p.pb)):
-            self.message = "所选点不在当前视场，先按 Z 回到它附近。"
-            return self.message
-        sa = I.detect(self.a, self.win["a"], seed=p.pa, local_radius=150.0,
-                      sigma=30.0, seed_frac=0.95)
-        sb = I.detect(self.b, self.win["b"], seed=p.pb, local_radius=150.0,
-                      sigma=30.0, seed_frac=0.95)
-        self.contours = {"a": [sa] if sa else [], "b": [sb] if sb else []}
-        self.corridor = None
-        ta = f"{sa['area_px']} px" if sa else "没找到"
-        tb = f"{sb['area_px']} px" if sb else "没找到"
-        self.identify_msg = f"点 {p.i} 附近：AIA {ta}，EUVI {tb}"
-        weak = []
-        for d in (sa, sb):
-            if d and d["seed_dark"] and d["mean_dark"] < 0.90 * d["seed_dark"]:
-                weak.append(d["seed_dark"])
-        if weak:
-            self.identify_msg += "（暗区偏大，建议缩小视场或换更暗的种子）"
-        self.message = self.identify_msg
-        return self.identify_msg
 
     def curve_of(self, which="b", n=400):
         """把已测点在某一幅图上的位置拟合成一条平滑曲线。
@@ -236,11 +198,6 @@ class Session:
                             f"r = {p.r:.4f} R_sun，高度 {p.res['height_mm']:.1f} Mm")
         return p
 
-    def clear_identify(self):
-        self.contours = {"a": [], "b": []}
-        self.corridor = None
-        self.identify_msg = ""
-
     # ------------------------------------------------------------------ #
     # 取点
     # ------------------------------------------------------------------ #
@@ -274,7 +231,6 @@ class Session:
         p = Point(i=len(self.points) + 1, pa=pa, pb=pb, res=res)
         self.points.append(p)
         self.pending = None
-        self.selected = len(self.points) - 1
         self.message = (f"点 {p.i}: r = {res['r']:.4f} R_sun，"
                         f"高度 {res['height_mm']:.1f} Mm，"
                         f"失配 {res['gap_km']:.1f} km")
@@ -302,7 +258,6 @@ class Session:
             p = self.points.pop(best)
             for j, q in enumerate(self.points, start=1):
                 q.i = j
-            self.selected = None
             self.message = f"已删除点 {p.i}（r = {p.r:.4f}）。"
             return True
         return False
@@ -310,18 +265,7 @@ class Session:
     def clear_points(self):
         self.points = []
         self.pending = None
-        self.selected = None
         self.message = "点已清空。"
-
-    def select_at(self, key, x, y, tol=12.0):
-        for k, p in enumerate(self.points):
-            q = p.pa if key == "a" else p.pb
-            if np.hypot(q[0] - x, q[1] - y) < tol:
-                self.selected = k
-                self.message = (f"选中点 {p.i}: r = {p.r:.4f}，"
-                                f"高度 {p.res['height_mm']:.1f} Mm")
-                return k
-        return None
 
     # ------------------------------------------------------------------ #
     # 拟合与统计

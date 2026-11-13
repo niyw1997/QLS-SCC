@@ -135,8 +135,6 @@ class View:
     p_lo: float = 0.5
     p_hi: float = 99.6
     obstacle: str = ""
-    _dark: np.ndarray | None = field(default=None, repr=False)
-    _dark_sigma: float | None = field(default=None, repr=False)
     _cache: dict = field(default_factory=dict, repr=False)
 
     # ---- 基本量 -------------------------------------------------------- #
@@ -245,41 +243,6 @@ class View:
         if not np.isfinite(hi) or hi <= lo:
             hi = lo * 10.0
         return float(lo), float(hi)
-
-    # ---- 暗化图（识别用） ---------------------------------------------- #
-    def darkening(self, sigma_arcsec=60.0, bg_median=0.0):
-        """原图减去大尺度高斯背景后的相对暗化，(bg - I)/bg，正值是暗结构。"""
-        if self._dark is not None and self._dark_sigma == sigma_arcsec:
-            return self._dark
-        img = np.asarray(self.m.data, float)
-        sig = max(sigma_arcsec / max(self.scale, 1e-6), 3.0)
-        bg = ndi.gaussian_filter(img, sig, mode="nearest")
-        with np.errstate(invalid="ignore", divide="ignore"):
-            d = (bg - img) / np.where(bg > 0, bg, np.nan)
-        self._dark = d
-        self._dark_sigma = sigma_arcsec
-        return d
-
-    def region_mask(self, win, shrink=0.98):
-        """窗口对应的原生像素布尔掩膜（含日面限制）。"""
-        ny, nx = self.m.data.shape
-        gx = np.linspace(win.x0, win.x1, 5)
-        gy = np.linspace(win.y0, win.y1, 5)
-        GX, GY = np.meshgrid(gx, gy)
-        px, py = self.to_pixel(GX.ravel(), GY.ravel())
-        i0, i1 = np.clip([px.min(), px.max()], 0, nx - 1).astype(int)
-        j0, j1 = np.clip([py.min(), py.max()], 0, ny - 1).astype(int)
-        m = np.zeros((ny, nx), bool)
-        m[max(j0, 0):min(j1 + 1, ny), max(i0, 0):min(i1 + 1, nx)] = True
-        # 日面内：用原生像素坐标算到日心的距离
-        xx, yy = np.meshgrid(np.arange(nx), np.arange(ny))
-        cx, cy = self.to_pixel(0.0, 0.0)
-        r = np.hypot(xx - float(np.ravel(cx)[0]), yy - float(np.ravel(cy)[0]))
-        rsun_px = self.rsun_arcsec / self.scale
-        m &= r < shrink * rsun_px
-        m &= np.isfinite(self.m.data) & (self.m.data > 0)
-        return m
-
 
 # --------------------------------------------------------------------------- #
 # 读入
