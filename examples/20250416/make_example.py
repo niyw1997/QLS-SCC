@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Headless example: two tie-points on the 2025-04-16 193/195 pair.
+"""Headless example: two tie-points on the 2025-04-16 304 pair.
 
 Run from the repository root, or set PYTHONPATH to it. The GUI version is run.sh.
 """
