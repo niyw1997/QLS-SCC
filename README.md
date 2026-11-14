@@ -20,6 +20,20 @@ QLS 风格的双视角 SCC 三角化工作台。把 SDO/AIA 与 STEREO-A/EUVI �
 - **任一格起点**，先从 AIA 或先从 EUVI 都可以，另一格自动画极线。
 - **出图**，PNG、PDF、JSON、CSV 一次落盘。
 
+## 最快开始
+
+拿到安装包和两幅 FITS 后，四条命令
+
+```bash
+tar xzf QLS-SCC-1.0.0.tar.gz
+cd QLS-SCC-1.0.0
+./install.sh
+./run.sh /path/to/aia.fits /path/to/euvi.fits
+```
+
+`run.sh` 只认两幅像，不需要 FoV JSON。整幅日面会按 1.06 倍视半径开窗，
+裁剪图会自动用像幅本身开窗。第三个参数可以指定输出目录，默认 `./out`。
+
 ## 安装
 
 需要 Python 3.10 或更新，以及 Tk。依赖是 numpy、scipy、matplotlib、astropy、sunpy。

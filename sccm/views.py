@@ -198,7 +198,11 @@ class View:
                 float(np.nanmin(ty)), float(np.nanmax(ty)))
 
     def full_window(self):
-        # 两格都按 1.06 倍视半径开窗，太阳看起来一样大，也不把整片天空塞进来
+        # 整幅日面按 1.06 倍视半径开窗；裁剪图则用像幅本身，避免开出一片空白
+        x0, x1, y0, y1 = self.extent()
+        if (x1 - x0) < 1.8 * self.rsun_arcsec or (y1 - y0) < 1.8 * self.rsun_arcsec:
+            return Window(0.5 * (x0 + x1), 0.5 * (y0 + y1),
+                          0.5 * max(x1 - x0, y1 - y0))
         return Window(0.0, 0.0, 1.06 * self.rsun_arcsec)
 
     def contains(self, x, y):
