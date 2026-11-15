@@ -345,6 +345,21 @@ def make_figure(session, size=(12.4, 9.0), dpi=150, levels=None, fig=None):
         ax_src.plot([x], [y], "+", ms=16, color=MAGENTA, mew=1.8, zorder=14)
         ax_src.plot([x], [y], "o", ms=18, mfc="none", mec=MAGENTA, mew=1.1, zorder=14)
         _epipolar(ax_dst, session.pending["epi"])
+        if session.guide_idx is not None:
+            ax_src.text(x + 6, y + 6, str(session.guide_idx + 1),
+                        color=MAGENTA, fontsize=8, zorder=15)
+
+    # 预置点已取过的对映点
+    if session.guides and session.guide_idx is not None:
+        g = session.guides[session.guide_idx]
+        dst = "b" if session.guide_src == "a" else "a"
+        ax_dst = ax_b if dst == "b" else ax_a
+        if g.dst is not None:
+            ax_dst.plot([g.dst[0]], [g.dst[1]], "o", ms=17, mfc="none",
+                        mec="#7cffb2", mew=1.6, zorder=14)
+            ax_dst.annotate(f"点 {session.guide_idx + 1}",
+                            xy=g.dst, xytext=(7, 7), textcoords="offset points",
+                            color="#7cffb2", fontsize=7.5, zorder=15)
 
     # 已测点
     _draw_points(ax_a, session.points, "a")

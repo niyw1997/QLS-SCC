@@ -74,6 +74,13 @@ def _cli_show(args):
         _apply_fov(s, args.fov_json)
     elif args.zoom:
         s.zoom("a", _box(args.zoom), link=True)
+    if args.guide:
+        from .guides import read_guides
+        try:
+            g = read_guides(args.guide, args.guide_panel)
+            s.load_guides(g["panel"], g["points"], windows=g.get("windows"))
+        except Exception as exc:
+            raise SystemExit(f"载入预置点失败: {exc}")
     gui.run(s, dialogs=not args.no_dialogs)
 
 
@@ -118,6 +125,11 @@ def build_parser():
     sp.add_argument("--zoom", default=None, help="启动视场 x0,x1,y0,y1（角秒）")
     sp.add_argument("--fov-json", default=None,
                     help="QLS 保存的 JSON，直接套用里面的 aia/euvi 窗口")
+    sp.add_argument("--guide", default=None,
+                    help="预置点列表 JSON/CSV，打开后可逐点取对映点")
+    sp.add_argument("--guide-panel", default=None,
+                    choices=("a", "b", "aia", "euvi"),
+                    help="预置点在 a/aia 还是 b/euvi")
     sp.add_argument("--r-hi", type=float, default=1.10, help="联动壳层上限，默认 1.10")
     sp.add_argument("--no-dialogs", action="store_true", help="不弹保存/报错对话框")
     sp.set_defaults(func=_cli_show)

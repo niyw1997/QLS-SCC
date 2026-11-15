@@ -18,6 +18,7 @@ QLS 风格的双视角 SCC 三角化工作台。把 SDO/AIA 与 STEREO-A/EUVI �
 - **视场联动**，在任一格框选，另一格按 1.0 到 r_hi 的三维壳层跟到同一片区域。
 - **平滑曲线吸附 Curve**，用已测点拟合曲线，与当前极线求最近点，替你对映点。
 - **任一格起点**，先从 AIA 或先从 EUVI 都可以，另一格自动画极线。
+- **预置点序列**，提前给一串源图坐标和 FoV，用 Prev/Next 逐点取对映点，已取的点可回看和覆盖。
 - **出图**，PNG、PDF、JSON、CSV 一次落盘。
 
 ## 最快开始
@@ -25,8 +26,8 @@ QLS 风格的双视角 SCC 三角化工作台。把 SDO/AIA 与 STEREO-A/EUVI �
 拿到安装包和两幅 FITS 后，四条命令
 
 ```bash
-tar xzf QLS-SCC-1.0.0.tar.gz
-cd QLS-SCC-1.0.0
+tar xzf QLS-SCC-1.1.0.tar.gz
+cd QLS-SCC-1.1.0
 ./install.sh
 ./run.sh /path/to/aia.fits /path/to/euvi.fits
 ```
@@ -88,19 +89,59 @@ PYTHONPATH=. .venv/bin/python examples/20250416/make_example.py
 两个点取在同一条结构上，r 约 1.1599 R_sun，高度约 111.3 Mm，最大视线失配 6.1 km。
 `examples/20250416/output/` 里已经放了一份跑好的四件套，可以直接对照。
 
+## 预置点序列
+
+如果已经知道源图上一串要测的坐标，可以写一份 JSON 直接带进程序。`panel` 是源图，
+`a`/`aia` 或 `b`/`euvi`，`points` 是源图上的 HPC 角秒坐标，`windows` 是两格 FoV。
+
+```json
+{
+  "panel": "a",
+  "points": [[-379.3, 117.6], [-371.7, 101.4]],
+  "windows": {
+    "aia": [-513.4, -155.8, -107.4, 250.2],
+    "euvi": [-1065.7, -681.6, -184.5, 199.5]
+  }
+}
+```
+
+`windows` 也可以直接放 QLS 的 `mapping.windows`。启动
+
+```bash
+./bin/sccm show --obs1 aia.fits --obs2 euvi.fits \
+  --guide examples/20250416/guides_193.json
+```
+
+界面里用 `Prev` / `Next` 或左右方向键逐点走。当前源点用洋红圈标出，另一格自动画出
+它的极线。在另一格点一次就记录，切回这个点时绿色圈会标出上次取的位置，再点一次
+就覆盖，不会新增重复点。只有 CSV 没有 FoV 时，可以另加 `--fov-json`，用
+`--guide-panel b` 指定源图是 EUVI。
+
+`Load list (L)` 可以在界面里直接换一份列表。如果坐标在 CSV 里、FoV 在另一份 QLS JSON 里，可以分开给
+
+```bash
+./bin/sccm show --obs1 aia.fits --obs2 euvi.fits \
+  --fov-json fov.json --guide points.csv --guide-panel b
+```
+
+`examples/20250416/guides_193.json` 是 2025-04-16 十个 AIA 坐标的例子。
+
 ## 取点过程中的一帧
 
 ![取点过程](docs/img/picking.png)
 
-这张图用 `examples/20250416/measurement.csv` 的前 4 个点复现，第 5 个点已经在 AIA 上起好，
-EUVI 上画出了它的极线，等着点对映点。信息栏里的 r 中位 1.0426、高度中位 30 Mm 就是这 4 个点。
+这张图用 `examples/20250416/measurement.csv` 的前 4 个点先取好，再切到第 5 个预置点。
+AIA 上是第 5 个洋红圈，EUVI 上已经画出它的极线。信息栏里的 r 中位 1.0426、高度中位
+30 Mm 就是前 4 个点。
 
 ```bash
-PYTHONPATH=. .venv/bin/python examples/20250416/replay_picking.py --points 4
+./bin/sccm show --obs1 examples/20250416/data/aia193_20250416_cutout.fits \
+  --obs2 examples/20250416/data/euvi195_20250416_cutout.fts \
+  --guide examples/20250416/guides_193.json
 ```
 
-`measurement.csv` 是 2025-04-16 193/195 那次测量的原始 10 点记录。`--points 10` 可以回放完整结果，
-`--save out.png` 则不开界面，直接存四格图。
+打开后按 `Next` 四次走到第 5 个点，就是截图里的状态。不开界面时，
+`replay_picking.py --points 4` 仍可生成同样的四格图。
 
 ## 通用用法
 
@@ -130,6 +171,8 @@ bin/sccm selftest
 | 控件 | 作用 |
 |---|---|
 | 联动缩放 Zoom / Link (Z) | 在任一格拖框，另一格按三维壳层联动 |
+| Prev / Next | 在预置点列表里前后切换，方向键也可以 |
+| 载入列表 Load list (L) | 选一份 JSON/CSV 预置点列表 |
 | 曲线吸附 Curve (M) | 至少 2 个点后，用另一格已测点的平滑曲线吸附对映点 |
 | 删最后 Undo (U) | 撤销最后一个点 |
 | 清空 Clear (X) | 清空所有点 |
@@ -145,7 +188,7 @@ bin/sccm selftest
 3. 在起点那一格再单击会移动起点并更新极线。
 4. 右键单击已测点可以删掉它。
 
-快捷键 `Z M U X S R A Q`，`Esc` 退出缩放模式。
+快捷键 `Z M U X S R A Q`，`←/→` 切预置点，`L` 载入列表，`Esc` 退出缩放模式。
 
 ## 方法
 
@@ -165,13 +208,15 @@ QLS-SCC/
   bin/sccm                 启动器
   sccm/views.py            读 FITS、HPC 网格重采样、拉伸
   sccm/geometry.py         视线、极线、三角化、视场联动
-  sccm/app.py              会话状态、取点、曲线、保存
+  sccm/app.py              会话状态、预置点、取点、曲线、保存
+  sccm/guides.py           预置点 JSON/CSV 读入
   sccm/render.py           四格排版与出图
   sccm/gui.py              Tk 界面
   sccm/cli.py              命令行
   sccm/selftest.py         数值自检
   examples/20250416/       193/195 例子、裁剪数据、FoV、成品
   examples/20250416/measurement.csv  已记录的 10 个点
+  examples/20250416/guides_193.json  10 个 AIA 预置点与 FoV
   examples/20250416/replay_picking.py 取点过程回放
   install.sh               建 venv 并装依赖
 ```

@@ -34,6 +34,19 @@ PYTHONPATH=. .venv/bin/python examples/20250416/make_example.py
 
 `make_example.py` 取两个点，结果写到 `output/`。
 
+## 预置点序列
+
+`guides_193.json` 是同一批 10 个 AIA 坐标加 FoV。直接带进界面
+
+```bash
+cd ../..
+./bin/sccm show --obs1 examples/20250416/data/aia193_20250416_cutout.fits \
+  --obs2 examples/20250416/data/euvi195_20250416_cutout.fts \
+  --guide examples/20250416/guides_193.json
+```
+
+用 `Prev` / `Next` 逐点走。已经取过的点在切换回来时会用绿色圈标出，再点一次就覆盖。
+
 ## 预期结果
 
 | 量 | 值 |

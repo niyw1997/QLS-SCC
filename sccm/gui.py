@@ -203,6 +203,16 @@ class SCCApp:
 
         self.btn_zoom = _Button(side, "联动缩放 Zoom / Link  (Z)", self.toggle_zoom)
         self.btn_zoom.pack(fill="x", padx=14, pady=2)
+
+        nav = tk.Frame(side, bg=BG)
+        nav.pack(fill="x", padx=14, pady=2)
+        self.btn_prev = _Button(nav, "Prev  ←", self.prev_guide)
+        self.btn_prev.pack(side="left", fill="x", expand=True, padx=(0, 2))
+        self.btn_next = _Button(nav, "Next  →", self.next_guide)
+        self.btn_next.pack(side="left", fill="x", expand=True, padx=(2, 0))
+        self.btn_load = _Button(side, "载入列表 Load list  (L)", self.load_list)
+        self.btn_load.pack(fill="x", padx=14, pady=2)
+
         self.btn_snap = _Button(side, "曲线吸附 Curve  (M)", self.auto_snap)
         self.btn_snap.pack(fill="x", padx=14, pady=2)
         _Button(side, "删最后 Undo  (U)", self.undo).pack(fill="x", padx=14, pady=2)
@@ -236,8 +246,10 @@ class SCCApp:
         self.info.pack(fill="both", expand=True, padx=14, pady=(2, 4))
         self.info.configure(state="disabled")
 
-        for k, fn in (("z", self.toggle_zoom), ("m", self.auto_snap),
-                      ("u", self.undo),
+        self.root.bind("<Left>", lambda e: self.prev_guide())
+        self.root.bind("<Right>", lambda e: self.next_guide())
+        for k, fn in (("z", self.toggle_zoom), ("l", self.load_list),
+                      ("m", self.auto_snap), ("u", self.undo),
                       ("x", self.clear), ("s", self.save), ("r", self.reset),
                       ("a", self.auto_levels), ("q", self.close)):
             self.root.bind(f"<KeyPress-{k}>", lambda e, f=fn: f())
@@ -325,6 +337,11 @@ class SCCApp:
         self._update_buttons()
 
     def _update_buttons(self):
+        if hasattr(self, "btn_prev"):
+            n = len(self.s.guides)
+            i = self.s.guide_idx
+            self.btn_prev.set_enabled(n > 0 and i is not None and i > 0)
+            self.btn_next.set_enabled(n > 0 and i is not None and i < n - 1)
         if hasattr(self, "btn_snap"):
             self.btn_snap.set_enabled(len(self.s.points) >= 2)
 
@@ -417,10 +434,17 @@ class SCCApp:
             return
         if self.s.pending is not None:
             if key == self.s.pending.get("src", "a"):
-                self.s.start_point(key, x, y)
-                self.s.message = "已移动起点，极线已更新。"
+                if self.s.pending.get("guide") is not None:
+                    self.s.message = "源点由预置列表给定，请到另一格点对映点。"
+                else:
+                    self.s.start_point(key, x, y)
+                    self.s.message = "已移动起点，极线已更新。"
             else:
                 self.s.complete_point(key, x, y)
+            self.redraw()
+            return
+        if self.s.guides:
+            self.s.goto_guide(self.s.guide_idx or 0)
             self.redraw()
             return
         # 没有待确认点时，从当前这一格起新点，另一格自动画极线
@@ -469,13 +493,45 @@ class SCCApp:
         self.redraw()
 
     # ------------------------------------------------------------------ #
+    def prev_guide(self):
+        self.s.prev_guide()
+        self.redraw()
+
+    def next_guide(self):
+        self.s.next_guide()
+        self.redraw()
+
+    def load_list(self):
+        if not self.dialogs:
+            return
+        path = filedialog.askopenfilename(
+            title="选择预置点列表",
+            filetypes=[("JSON/CSV", "*.json *.csv"), ("All", "*")])
+        if not path:
+            return
+        if self.s.points and not messagebox.askyesno(
+                "载入列表", "当前已测点会被清空，继续吗？"):
+            return
+        try:
+            from .guides import read_guides
+            g = read_guides(path)
+            self.s.load_guides(g["panel"], g["points"], windows=g.get("windows"))
+        except Exception as exc:
+            messagebox.showerror("SCC Measure", f"载入失败：{exc}")
+            return
+        self.redraw()
+
     def auto_snap(self):
         self.s.auto_snap()
         self.redraw()
 
     def undo(self):
         if self.s.points:
-            self.s.points.pop()
+            p = self.s.points.pop()
+            if p.seq is not None and 0 <= p.seq < len(self.s.guides):
+                self.s.guides[p.seq].point = None
+                self.s.guides[p.seq].dst = None
+                self.s.goto_guide(p.seq)
             for j, q in enumerate(self.s.points, start=1):
                 q.i = j
             self.s.message = "已撤销最后一个点。"
